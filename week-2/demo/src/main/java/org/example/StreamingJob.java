@@ -18,10 +18,18 @@
 
 package org.example;
 
+import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.util.Collector;
 
+import javax.xml.crypto.Data;
 import java.util.Properties;
 
 /**
@@ -63,23 +71,25 @@ public class StreamingJob {
 		 */
 
 		// execute program
-		env.execute("Flink Streaming Java API Skeleton");
+		DataStream<Tuple2<String, Integer>> dataStream = env.readTextFile("file:///absolute_path_to_file")
+				.flatMap(new Splitter())
+				.keyBy(value -> value.f0)
+				.sum(1);
+
+
+
+
+
+		dataStream.print();
+		env.execute();
 	}
-	public static void exampleJob(StreamExecutionEnvironment env) throws Exception{
-
-		String inputTopic = "devschool-test";
-		String consumerGroup = "devschool-training-1";
-		String kafkaBrokerAddress = "placeholder:9092";
-		String schemaRegistryAddress = "placeholder:8081";
-
-		Properties properties = new Properties();
-
-		properties.put(ConsumerConfig.CLIENT_ID_CONFIG,"devschool_client1");
-		properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,kafkaBrokerAddress);
-		properties.put("schema.registry.url",schemaRegistryAddress);
-
-
-
-
+	public static class Splitter implements FlatMapFunction<String, Tuple2<String, Integer>> {
+		@Override
+		public void flatMap(String sentence, Collector<Tuple2<String, Integer>> out) throws Exception {
+			for (String word: sentence.split(" ")) {
+				out.collect(new Tuple2<String, Integer>(word, 1));
+			}
+		}
 	}
+
 }
